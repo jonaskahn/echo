@@ -80,7 +80,7 @@ else:
         from typing import TypedDict
 
 
-class AgentState(TypedDict, total=False):
+class AgentState(TypedDict):
     """Comprehensive conversation state schema for multi-agent orchestration.
 
     This TypedDict defines the complete state structure for Echo's multi-agent

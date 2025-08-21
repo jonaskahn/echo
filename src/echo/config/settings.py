@@ -76,14 +76,14 @@ class Settings(BaseSettings):
 
     max_agent_hops: int = Field(
         default=25,
-        ge=5,
+        ge=1,
         le=50,
         description="Maximum agent switches before forcing finalization (prevents infinite agent routing loops)",
     )
 
     max_tool_hops: int = Field(
         default=50,
-        ge=25,
+        ge=1,
         le=100,
         description="Maximum tool calls before forcing finalization (prevents excessive tool usage)",
     )

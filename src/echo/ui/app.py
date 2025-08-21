@@ -47,6 +47,8 @@ def _ensure_session_state() -> None:
         st.session_state["org_id"] = os.environ.get("ECHO_DEFAULT_ORG_ID", "public")
     if "recent_threads" not in st.session_state:
         st.session_state["recent_threads"] = []
+    if "show_settings" not in st.session_state:
+        st.session_state["show_settings"] = False
 
 
 def _send_message(user_text: str) -> Dict[str, Any]:
@@ -81,66 +83,47 @@ def _send_message(user_text: str) -> Dict[str, Any]:
 
 def main() -> None:
     """Render and run the Streamlit chat interface for Echo."""
-    st.set_page_config(page_title="Echo Debug Chat", page_icon="🤖", layout="centered")
+    st.set_page_config(page_title="Echo Debug Chat", page_icon="🤖", layout="wide")
     st.title("Echo 🤖 Debug Chat UI")
 
     _ensure_session_state()
 
-    col_main, col_right = st.columns([3, 1], gap="large")
+    top_left, top_right = st.columns([6, 1])
+    with top_right:
+        st.toggle("Settings", key="show_settings")
 
-    with col_right:
-        st.subheader("Thread")
-        thread_value = st.text_input("Thread ID", value=st.session_state.get("thread_id") or "")
-        load_col, reset_col = st.columns(2)
-        with load_col:
-            if st.button("Load", use_container_width=True):
-                if thread_value.strip():
-                    st.session_state["thread_id"] = thread_value.strip()
-                    st.session_state["messages"] = []
-                    # maintain recent list
-                    recent: list[str] = st.session_state.get("recent_threads", [])
-                    if thread_value.strip() in recent:
-                        recent.remove(thread_value.strip())
-                    recent.insert(0, thread_value.strip())
-                    st.session_state["recent_threads"] = recent[:20]
-                    st.toast(f"Loaded thread {thread_value.strip()}", icon="📂")
-        with reset_col:
-            if st.button("Reset", use_container_width=True):
-                st.session_state["thread_id"] = None
-                st.session_state["messages"] = []
-                st.toast("Thread reset", icon="♻️")
+    if st.session_state.get("show_settings"):
+        col_main, col_right = st.columns([4, 1], gap="large")
 
-        if st.session_state.get("recent_threads"):
-            st.caption("Recent Threads")
-            selected = st.selectbox("Select", st.session_state["recent_threads"], label_visibility="collapsed")
-            if st.button("Load Selected", use_container_width=True):
-                st.session_state["thread_id"] = selected
-                st.session_state["messages"] = []
-                st.toast(f"Loaded thread {selected}", icon="📂")
+        with col_right:
+            st.subheader("Settings")
+            backend = _get_backend_url()
+            st.text_input("Backend URL", value=backend, key="backend_url", disabled=True)
+            st.text_input("User ID", key="user_id")
+            st.text_input("Org ID", key="org_id")
 
-        st.divider()
-        st.subheader("Settings")
-        backend = _get_backend_url()
-        st.text_input("Backend URL", value=backend, key="backend_url", disabled=True)
-        st.text_input("User ID", key="user_id")
-        st.text_input("Org ID", key="org_id")
-
-    with col_main:
+        with col_main:
+            for msg in st.session_state["messages"]:
+                with st.chat_message(msg["role"]):
+                    st.markdown(msg["content"])
+    else:
         for msg in st.session_state["messages"]:
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
 
-        user_text = st.chat_input("Type your message…")
-        if user_text:
-            st.session_state["messages"].append({"role": "user", "content": user_text})
-            with st.chat_message("user"):
-                st.markdown(user_text)
+        pass
 
-            with st.chat_message("assistant"):
-                with st.spinner("Thinking…"):
-                    assistant_msg = _send_message(user_text)
-                    st.markdown(assistant_msg["content"])
-                    st.session_state["messages"].append(assistant_msg)
+    user_text = st.chat_input("Type your message…")
+    if user_text:
+        st.session_state["messages"].append({"role": "user", "content": user_text})
+        with st.chat_message("user"):
+            st.markdown(user_text)
+
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking…"):
+                assistant_msg = _send_message(user_text)
+                st.markdown(assistant_msg["content"])
+                st.session_state["messages"].append(assistant_msg)
 
 
 if __name__ == "__main__":
