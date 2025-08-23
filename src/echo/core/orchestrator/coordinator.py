@@ -21,8 +21,6 @@ from ...config.settings import Settings
 from ...infrastructure.llm.factory import LLMModelFactory
 from ...infrastructure.plugins.sdk_manager import SDKPluginManager
 
-
-# Constants for better maintainability
 class GraphNodes:
     COORDINATOR = "coordinator"
     CONTROL_TOOLS = "control_tools"
@@ -38,10 +36,10 @@ class RoutingResults:
 
 
 class SystemPrompts:
-    COORDINATOR_TEMPLATE = """Your goal is to analyze queries and choose one in appropriate **AVAILABLE AGENTS**.
+    COORDINATOR_TEMPLATE = """Your goal is to analyze queries and decide go to next agent in **AVAILABLE AGENTS**.
 **AVAILABLE AGENTS**
 {plugin_descriptions}
-- finalize: Call when you think the answer for the user query/question is finished processing.
+- finalize: Call when you think the answer for the user query/question is ready.
 **DECISION OUTPUT**
 - Choose ONE of: {tool_options} | finalize"""
 
@@ -386,7 +384,8 @@ class MultiAgentOrchestrator(Loggable):
 
         return not tool_call_ids.issubset(found_tool_responses)
 
-    def _find_tool_responses(self, messages: List, message_index: int) -> set:
+    @staticmethod
+    def _find_tool_responses(messages: List, message_index: int) -> set:
         """Searches for tool response messages that correspond to tool calls.
 
         This method examines subsequent messages in the conversation to find

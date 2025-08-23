@@ -71,9 +71,6 @@ class Settings(BaseSettings):
         default="memory", description="Backend for conversation storage: memory, redis, postgresql"
     )
 
-    session_timeout: int = Field(default=3600, ge=60, description="Session timeout in seconds")
-    max_session_history: int = Field(default=100, ge=1, description="Maximum session history length")
-
     max_agent_hops: int = Field(
         default=25,
         ge=1,

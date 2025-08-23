@@ -1,7 +1,7 @@
 """Redis-based ThreadRepository implementation."""
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any
 
 import redis.asyncio as redis
@@ -157,7 +157,7 @@ class RedisThreadRepository(ThreadRepository):
         thread_key = self._get_thread_key(thread.thread_id)
         if not await self.redis.exists(thread_key):
             raise ValueError(f"Thread {thread.thread_id} not found")
-        thread.updated_at = datetime.utcnow()
+        thread.updated_at = datetime.now(timezone.utc)
         thread_data = thread.to_dict()
 
         async with self.redis.pipeline() as pipe:
@@ -322,12 +322,12 @@ class RedisThreadRepository(ThreadRepository):
 
         try:
             result = await self.redis.eval(
-                lua_script, 1, thread_key, user_tokens, assistant_tokens, datetime.now(datetime.UTC).isoformat()
+                lua_script, 1, thread_key, user_tokens, assistant_tokens, datetime.now(timezone.utc).isoformat()
             )
 
             if result:
                 updated_key = self._get_sorted_threads_key("updated_at")
-                await self.redis.zadd(updated_key, {thread_id: datetime.now(datetime.UTC).timestamp()})
+                await self.redis.zadd(updated_key, {thread_id: datetime.now(timezone.utc).timestamp()})
                 logger.debug(f"Updated tokens for thread {thread_id}: +{user_tokens} input, +{assistant_tokens} output")
                 return True
             else:
@@ -349,7 +349,7 @@ class RedisThreadRepository(ThreadRepository):
         Returns:
             Number of entries removed across ``created_at`` and ``updated_at`` Sorted Sets.
         """
-        cutoff_timestamp = (datetime.utcnow() - timedelta(days=days_old)).timestamp()
+        cutoff_timestamp = (datetime.now(timezone.utc) - timedelta(days=days_old)).timestamp()
         created_key = self._get_sorted_threads_key("created_at")
         updated_key = self._get_sorted_threads_key("updated_at")
 
