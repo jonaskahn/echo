@@ -198,12 +198,12 @@ class ModelCacheManager(Loggable):
             model: The instantiated ``BaseChatModel`` to cache.
         """
         self._cache[cache_key] = model
-        self.logger.info(f"Cached model: {cache_key}")
+        self.logger.debug(f"Cached model: {cache_key}")
 
     def clear_cache(self) -> None:
         """Clear all cached models."""
         self._cache.clear()
-        self.logger.info("Cleared model cache")
+        self.logger.debug("Cleared model cache")
 
     def get_cache_stats(self) -> Dict[str, int]:
         """Return cache statistics.
@@ -254,7 +254,7 @@ class ProviderRegistry(Loggable):
             provider: Concrete ``BaseLLMProvider`` implementation.
         """
         self._providers[name] = provider
-        self.logger.info(f"Registered provider: {name}")
+        self.logger.debug(f"Registered provider: {name}")
 
     def get_available_providers(self) -> List[str]:
         """Return the list of available provider names."""
@@ -306,7 +306,7 @@ class LLMModelFactory(Loggable):
 
         model = provider.create_model(config)
         self.cache_manager.cache_model(cache_key, model)
-        self.logger.info(f"Created model: {cache_key}")
+        self.logger.debug(f"Created model: {cache_key}")
         return model
 
     def _ensure_api_key(self, config: ModelConfig) -> None:
@@ -346,7 +346,7 @@ class LLMModelFactory(Loggable):
             raise ValueError(f"Provider not found: {config.provider}")
 
         bound_model = provider.bind_tools(base_model, tools)
-        self.logger.info(f"Created agent model for {agent_name} with {len(tools)} tools")
+        self.logger.debug(f"Created agent model for {agent_name} with {len(tools)} tools")
         return bound_model
 
     def _create_default_config(self) -> ModelConfig:

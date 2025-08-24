@@ -302,8 +302,19 @@ class ConversationService(Loggable):
     @staticmethod
     def _extract_processing_metadata(orchestrator_result: Dict[str, Any]) -> Dict[str, Any]:
         """Extract processing metadata from orchestrator result."""
+        tools_used = []
+        messages = orchestrator_result.get("messages", [])
+        
+        for message in messages:
+            if hasattr(message, 'tool_calls') and message.tool_calls:
+                for tool_call in message.tool_calls:
+                    if isinstance(tool_call, dict) and 'name' in tool_call:
+                        tools_used.append(tool_call['name'])
+                    elif hasattr(tool_call, 'name'):
+                        tools_used.append(tool_call.name)
+        
         return {
-            "tools_used": [],
+            "tools_used": tools_used,
             "routing_history": orchestrator_result.get("plugin_context", {}).get("routing_history", []),
             "processing_time": None,
             "model_used": "default",

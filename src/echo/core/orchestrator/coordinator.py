@@ -21,6 +21,7 @@ from ...config.settings import Settings
 from ...infrastructure.llm.factory import LLMModelFactory
 from ...infrastructure.plugins.sdk_manager import SDKPluginManager
 
+
 class GraphNodes:
     COORDINATOR = "coordinator"
     CONTROL_TOOLS = "control_tools"
@@ -75,17 +76,22 @@ class ToolLoggingHandler(BaseCallbackHandler):
     def on_tool_start(self, serialized=None, input_str=None, **kwargs):
         try:
             name = serialized.get("name") if isinstance(serialized, dict) else None
-            self.logger.info(f"Tool start: name={name or 'unknown'} input={input_str}")
-
-            if self.state_updater:
+            self.logger.debug(f"Tool start: name={name or 'unknown'} input={input_str}")
+            if name.startswith("goto_") or name == "finalize":
+                self.logger.debug(f"Tool name={name or 'unknown'} is skipped from counting")
+            elif self.state_updater:
+                self.logger.debug(f"Updating tool_hops: +1 (tool: {name})")
                 self.state_updater("tool_hops", 1)
-        except Exception:
+            else:
+                self.logger.warning("No state_updater available for tool_hops tracking")
+        except Exception as e:
+            self.logger.error(f"Error in on_tool_start: {e}")
             pass
 
     def on_tool_end(self, output=None, **kwargs):
         try:
             preview = str(output)[:200] if output else None
-            self.logger.info(f"Tool end: output={preview}")
+            self.logger.debug(f"Tool end: output={preview}")
         except Exception:
             pass
 
@@ -257,7 +263,8 @@ class MultiAgentOrchestrator(Loggable):
             or state.get("tool_hops", 0) >= self.settings.max_tool_hops
         )
 
-    def _has_tool_calls(self, state: AgentState) -> bool:
+    @staticmethod
+    def _has_tool_calls(state: AgentState) -> bool:
         """Checks whether the most recent message in the conversation contains pending tool calls.
 
         Tool calls indicate that the coordinator has made a decision to route to a specific
@@ -284,7 +291,7 @@ class MultiAgentOrchestrator(Loggable):
 
         coordinator_response = self.coordinator_model.invoke([system_message] + state["messages"])
 
-        return self._create_state_update(coordinator_response, state.get("agent_hops", 0))
+        return self._create_state_update(coordinator_response, state.get("agent_hops", 0), state)
 
     @staticmethod
     def _build_coordinator_prompt(plugin_routing_info: Dict[str, str]) -> str:
@@ -321,7 +328,7 @@ class MultiAgentOrchestrator(Loggable):
         )
 
         suspension_response = self._invoke_model_with_prompt(suspension_message, state["messages"])
-        return self._create_state_update(suspension_response, current_hops)
+        return self._create_state_update(suspension_response, current_hops, state)
 
     def _finalizer_node(self, state: AgentState) -> AgentState:
         """Synthesizes the complete conversation into a coherent final response.
@@ -334,19 +341,28 @@ class MultiAgentOrchestrator(Loggable):
         finalization_prompt = SystemMessage(content=SystemPrompts.FINALIZATION)
         final_response = self._invoke_model_with_prompt(finalization_prompt, state["messages"])
 
-        return self._create_state_update(final_response, state.get("agent_hops", 0))
+        return self._create_state_update(final_response, state.get("agent_hops", 0), state)
 
-    def _create_state_update(self, message: AIMessage, agent_hops: int) -> Dict[str, Any]:
+    @staticmethod
+    def _create_state_update(message: AIMessage, agent_hops: int, state: Dict[str, Any] = None) -> Dict[str, Any]:
         """Creates a standardized state update structure for graph node responses.
 
         This method ensures consistency in how all nodes update the conversation state
         by providing a uniform structure that includes the new message and preserves
-        the current hop count for proper conversation tracking.
+        the current hop count and other state fields for proper conversation tracking.
         """
-        return {
+        update = {
             "messages": [message],
             "agent_hops": agent_hops,
         }
+
+        # Preserve other important state fields if state is provided
+        if state:
+            for key in ["tool_hops", "current_agent", "plugin_context", "session_id"]:
+                if key in state:
+                    update[key] = state[key]
+
+        return update
 
     def _filter_safe_messages(self, messages: List) -> List:
         """Removes messages with incomplete tool call sequences to prevent validation errors.
@@ -402,8 +418,20 @@ class MultiAgentOrchestrator(Loggable):
 
         return found_tool_responses
 
-    @staticmethod
-    def _make_state_updater(input_state: Dict[str, Any]):
+    def _merge_updated_state(self, result: Dict[str, Any], input_state: Dict[str, Any]) -> Dict[str, Any]:
+        """Merge callback-updated state values into the graph execution result."""
+        if "tool_hops" in input_state:
+            old_value = result.get("tool_hops", "NOT_FOUND")
+            new_value = input_state["tool_hops"]
+            result["tool_hops"] = new_value
+            self.logger.debug(f"Merged tool_hops: {old_value} -> {new_value}")
+
+        if "agent_hops" in result:
+            self.logger.debug(f"Preserved agent_hops: {result['agent_hops']}")
+
+        return result
+
+    def _make_state_updater(self, input_state: Dict[str, Any]):
         """Creates a callback function for updating conversation state counters.
 
         This static method returns a closure that can be used by callback handlers
@@ -414,7 +442,12 @@ class MultiAgentOrchestrator(Loggable):
 
         def state_updater(field: str, increment: int):
             if field == "tool_hops":
-                input_state["tool_hops"] = input_state.get("tool_hops", 0) + increment
+                old_value = input_state.get("tool_hops", 0)
+                new_value = old_value + increment
+                input_state["tool_hops"] = new_value
+                self.logger.debug(f"State updater: tool_hops {old_value} -> {new_value} (+{increment})")
+            else:
+                self.logger.debug(f"State updater: {field} +{increment}")
 
         return state_updater
 
@@ -464,11 +497,12 @@ class MultiAgentOrchestrator(Loggable):
             return RoutingResults.END
 
         tool_result = last_message.content
-        self.logger.info(f"Routing decision: tool_result='{tool_result}'")
+        self.logger.debug(f"Routing decision: tool_result='{tool_result}'")
 
         return self._determine_route(tool_result, state)
 
-    def _is_valid_tool_message(self, message: Any) -> bool:
+    @staticmethod
+    def _is_valid_tool_message(message: Any) -> bool:
         """Validates that a message has the required structure for tool routing.
 
         This method ensures that a message object exists and contains a content
@@ -506,13 +540,13 @@ class MultiAgentOrchestrator(Loggable):
         routing to the intended plugin agent for specialized task processing.
         """
         target_agent = f"{tool_result}_agent"
-        self.logger.info(f"Routing to agent: {target_agent}")
+        self.logger.debug(f"Routing to agent: {target_agent}")
 
         current_agent = state.get("current_agent")
         if current_agent != tool_result:
-            self.logger.info(f"Agent switch detected: {current_agent} -> {tool_result}")
+            self.logger.debug(f"Agent switch detected: {current_agent} -> {tool_result}")
         else:
-            self.logger.info(f"Continuing with same agent: {tool_result}")
+            self.logger.debug(f"Continuing with same agent: {tool_result}")
 
         return target_agent
 
@@ -530,7 +564,8 @@ class MultiAgentOrchestrator(Loggable):
 
         try:
             config = self._build_run_config(input_data)
-            return await self.graph.ainvoke(input_data, config=config)
+            result = await self.graph.ainvoke(input_data, config=config)
+            return self._merge_updated_state(result, input_data)
         except Exception as e:
             return self._handle_orchestrator_error(e, input_data)
 
@@ -571,5 +606,6 @@ class MultiAgentOrchestrator(Loggable):
         return {
             "messages": [AIMessage(content=f"I encountered an error processing your request. Error: {str(error)}")],
             "agent_hops": input_data.get("agent_hops", 0) + 1,
+            "tool_hops": input_data.get("tool_hops", 0),  # Preserve tool_hops
             "error": str(error),
         }

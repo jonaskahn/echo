@@ -344,7 +344,7 @@ class SDKPluginManager(Loggable):
             from echo_sdk.utils.plugin_discovery import auto_discover_plugins as _auto
 
             count = _auto()
-            self.logger.info(f"Imported {count} pip plugin packages")
+            self.logger.debug(f"Imported {count} pip plugin packages")
             return count
         except Exception as e:
             self.logger.warning(f"Pip plugin discovery unavailable or failed: {e}")
@@ -357,7 +357,7 @@ class SDKPluginManager(Loggable):
         sys.path.insert(0, str(plugin_path.parent))
         try:
             importlib.import_module(plugin_name)
-            self.logger.info(f"Loaded plugin package: {plugin_name}")
+            self.logger.debug(f"Loaded plugin package: {plugin_name}")
         except Exception as e:
             self.logger.error(f"Error loading plugin package {plugin_name}: {e}")
             raise
@@ -376,7 +376,7 @@ class SDKPluginManager(Loggable):
         self.load_plugin_packages()
 
         contracts = discover_plugins()
-        self.logger.info(f"Discovered {len(contracts)} SDK-registered plugins")
+        self.logger.debug(f"Discovered {len(contracts)} SDK-registered plugins")
 
         for contract in contracts:
             try:
@@ -391,7 +391,7 @@ class SDKPluginManager(Loggable):
             metadata = contract.get_metadata()
             plugin_name = metadata.name
 
-            self.logger.info(f"Creating plugin bundle for: {plugin_name}")
+            self.logger.debug(f"Creating plugin bundle for: {plugin_name}")
 
             if not self._validate_plugin(contract, plugin_name):
                 return False
@@ -449,9 +449,9 @@ class SDKPluginManager(Loggable):
     def _log_bundle_creation_success(self, plugin_name: str, agent, tools: List[Tool], metadata):
         """Log successful plugin bundle creation."""
         self.logger.info(f"Successfully created plugin bundle: {plugin_name} v{metadata.version}")
-        self.logger.info(f"  - Agent: {type(agent).__name__}")
-        self.logger.info(f"  - Tools: {len(tools)} tools")
-        self.logger.info(f"  - Capabilities: {metadata.capabilities}")
+        self.logger.debug(f"  - Agent: {type(agent).__name__}")
+        self.logger.debug(f"  - Tools: {len(tools)} tools")
+        self.logger.debug(f"  - Capabilities: {metadata.capabilities}")
 
     def get_plugin_bundle(self, name: str) -> Optional[SDKPluginBundle]:
         """Get a plugin bundle by name."""
@@ -508,7 +508,7 @@ class SDKPluginManager(Loggable):
                     self.failed_plugins.add(plugin_name)
                     self.healthy_plugins.discard(plugin_name)
 
-                self.logger.info(f"Health check for {plugin_name}: {health_status}")
+                self.logger.debug(f"Health check for {plugin_name}: {health_status}")
 
             except Exception as e:
                 self.logger.error(f"Health check failed for {plugin_name}: {e}")
@@ -563,3 +563,5 @@ class SDKPluginManager(Loggable):
         self.plugin_contracts.clear()
         self.healthy_plugins.clear()
         self.failed_plugins.clear()
+
+

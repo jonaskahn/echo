@@ -1,32 +1,55 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import httpx
 
 
 @dataclass
 class ChatResult:
+    """Result of a chat message exchange with the Echo backend."""
+
     response: str
     thread_id: str
     conversation_id: str
     metadata: Dict[str, Any]
 
 
-class EchoApiClient:
-    """Lightweight client for the Echo FastAPI backend.
+@dataclass
+class PluginInfo:
+    """Information about a plugin including metadata and health status."""
 
-    This client wraps synchronous HTTP calls to the server and returns
-    structured results for use by the Streamlit UI.
-    """
+    name: str
+    version: str
+    description: str
+    capabilities: List[str]
+    status: str
+
+
+@dataclass
+class SystemStatus:
+    """Overall system health and status information."""
+
+    status: str
+    available_plugins: List[str]
+    healthy_plugins: List[str]
+    failed_plugins: List[str]
+    total_sessions: int
+
+
+class EchoApiClient:
+    """HTTP client for communicating with the Echo FastAPI backend."""
 
     def __init__(self, base_url: str = "http://localhost:8000") -> None:
-        """Create a client bound to ``base_url``.
-
-        Trailing slashes are removed to keep path joins consistent.
-        """
         self.base_url = base_url.rstrip("/")
+
+    def _make_request(self, method: str, endpoint: str, **kwargs) -> Any:
+        """Make an HTTP request to the backend and return the JSON response."""
+        with httpx.Client(base_url=self.base_url, timeout=30.0) as client:
+            response = client.request(method, endpoint, **kwargs)
+            response.raise_for_status()
+            return response.json()
 
     def chat(
         self,
@@ -36,15 +59,7 @@ class EchoApiClient:
         org_id: str = "public",
         metadata: Optional[Dict[str, Any]] = None,
     ) -> ChatResult:
-        """Send a chat message and return the server's response.
-
-        Parameters:
-        - ``message``: user input text
-        - ``thread_id``: existing thread to continue; if ``None`` a new thread
-          may be created by the server
-        - ``user_id`` and ``org_id``: identifiers forwarded to the backend
-        - ``metadata``: arbitrary request metadata
-        """
+        """Send a chat message and return the assistant's response."""
         payload = {
             "message": message,
             "thread_id": thread_id,
@@ -52,13 +67,25 @@ class EchoApiClient:
             "org_id": org_id,
             "metadata": metadata or {},
         }
-        with httpx.Client(base_url=self.base_url, timeout=30.0) as client:
-            resp = client.post("/api/v1/chat", json=payload)
-            resp.raise_for_status()
-            data = resp.json()
-            return ChatResult(
-                response=data.get("response", ""),
-                thread_id=data.get("thread_id", thread_id or ""),
-                conversation_id=data.get("conversation_id", ""),
-                metadata=data.get("metadata", {}),
-            )
+
+        data = self._make_request("POST", "/api/v1/chat", json=payload)
+        return ChatResult(
+            response=data.get("response", ""),
+            thread_id=data.get("thread_id", thread_id or ""),
+            conversation_id=data.get("conversation_id", ""),
+            metadata=data.get("metadata", {}),
+        )
+
+    def get_plugins(self) -> List[PluginInfo]:
+        """Fetch all available plugins with their metadata and status."""
+        data = self._make_request("GET", "/api/v1/plugins")
+        return [PluginInfo(**plugin) for plugin in data]
+
+    def get_system_status(self) -> SystemStatus:
+        """Fetch system status and health information."""
+        data = self._make_request("GET", "/api/v1/status")
+        return SystemStatus(**data)
+
+    def reload_plugins(self) -> Dict[str, Any]:
+        """Reload all plugins and return the result."""
+        return self._make_request("POST", "/api/v1/plugins/reload")

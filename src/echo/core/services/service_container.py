@@ -73,8 +73,8 @@ class ServiceContainer(Loggable):
         self._initialize_services()
 
         self.logger.info("Enhanced service container initialized successfully")
-        self.logger.info(f"Available plugins: {self.plugin_manager.get_available_plugins()}")
-        self.logger.info(
+        self.logger.debug(f"Available plugins: {self.plugin_manager.get_available_plugins()}")
+        self.logger.debug(
             f"Repository types: Thread={type(self.thread_repository).__name__}, Conversation={type(self.conversation_repository).__name__}"
         )
 
@@ -93,7 +93,7 @@ class ServiceContainer(Loggable):
         self.plugin_manager.discover_and_load_plugins()
         self.plugin_manager.perform_health_checks()
 
-        self.logger.info(f"Infrastructure initialized with {len(self.plugin_manager.get_available_plugins())} plugins")
+        self.logger.debug(f"Infrastructure initialized with {len(self.plugin_manager.get_available_plugins())} plugins")
 
     async def _initialize_repositories(
         self, thread_repository: Optional[ThreadRepository], conversation_repository: Optional[ConversationRepository]
@@ -102,7 +102,7 @@ class ServiceContainer(Loggable):
         if thread_repository and conversation_repository:
             self.thread_repository = thread_repository
             self.conversation_repository = conversation_repository
-            self.logger.info(
+            self.logger.debug(
                 f"Using provided repositories: {type(thread_repository).__name__}, {type(conversation_repository).__name__}"
             )
             return
