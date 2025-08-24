@@ -12,7 +12,7 @@ Planned Features:
 """
 
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
 from echo.domain.models.conversation import Conversation
 from echo.domain.models.thread import Thread, ThreadStatus

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from ..config.settings import Settings
-from ..core.services.service_container import initialize_container, global_service_container
+from ..core.services.service_container import global_service_container, initialize_container
 
 
 async def initialize_api(application_settings: Settings) -> None:

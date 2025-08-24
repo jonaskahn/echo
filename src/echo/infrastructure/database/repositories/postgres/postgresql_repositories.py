@@ -6,9 +6,9 @@ Optimized for PostgreSQL features like full-text search, JSON support, and advan
 
 import logging
 from datetime import datetime, timedelta
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
-from sqlalchemy import select, func, text, or_, and_, desc, asc
+from sqlalchemy import and_, asc, desc, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from echo.domain.models.conversation import Conversation

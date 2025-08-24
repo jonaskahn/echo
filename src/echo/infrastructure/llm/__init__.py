@@ -118,6 +118,6 @@ enabling intelligent conversations with optimal provider selection and performan
 """
 
 from .factory import LLMModelFactory
-from .providers import ModelConfig, BaseLLMProvider
+from .providers import BaseLLMProvider, ModelConfig
 
 __all__ = ["LLMModelFactory", "ModelConfig", "BaseLLMProvider"]

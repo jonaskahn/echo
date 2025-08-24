@@ -29,7 +29,9 @@ class Settings(BaseSettings):
     debug: bool = Field(default=False, description="Enable debug mode")
 
     default_llm_provider: str = Field(default="openai", description="Default LLM provider")
-    default_llm_context_window: int = Field(default=32_000, description="Default LLM context window size")
+    default_llm_context_window: int = Field(
+        default=32_000, le=64_000, gt=2000, description="Default LLM context window size"
+    )
     default_llm_temperature: float = Field(default=0.1, description="Default LLM temperature")
 
     openai_default_model: str = Field(default="gpt-4.1", description="Default OpenAI model")
@@ -90,6 +92,12 @@ class Settings(BaseSettings):
         ge=25,
         le=150,
         description="Maximum number of LangGraph steps per request before halting to prevent infinite loops",
+    )
+
+    finalizer_llm_provider: str = Field(default="openai", description="LLM provider for finalizer node")
+    finalizer_temperature: float = Field(default=0.8, ge=0.0, le=2.0, description="Temperature for finalizer node")
+    finalizer_max_tokens: int = Field(
+        default=32_000, ge=100, le=64_000, description="Maximum tokens for finalizer responses"
     )
 
     persistence_type: str = Field(
@@ -244,23 +252,34 @@ class Settings(BaseSettings):
                 return False
         return True
 
-    def get_default_provider_llm_model(self) -> str:
-        """Get the default model for the configured LLM provider.
+    def _get_model_for_provider(self, provider: str) -> str:
+        """Get the default model for a given provider.
+
+        Args:
+            provider: Provider name to get model for.
 
         Returns:
-            The default model string for the current provider.
+            The default model string for the provider.
 
         Raises:
             ValueError: If the provider is not supported.
         """
-        if self.default_llm_provider in {"openai", "azure", "azure-openai"}:
+        if provider in {"openai", "azure", "azure-openai"}:
             return self.openai_default_model
-        elif self.default_llm_provider in {"claude", "anthropic"}:
+        elif provider in {"claude", "anthropic"}:
             return self.anthropic_default_model
-        elif self.default_llm_provider in {"gemini", "google"}:
+        elif provider in {"gemini", "google"}:
             return self.gemini_default_model
         else:
-            raise ValueError(f"Unsupported provider: {self.default_llm_provider}")
+            raise ValueError(f"Unsupported provider: {provider}")
+
+    def get_default_provider_llm_model(self) -> str:
+        """Get the default model for the configured LLM provider."""
+        return self._get_model_for_provider(self.default_llm_provider)
+
+    def get_finalizer_provider_llm_model(self) -> str:
+        """Get the model for the finalizer LLM provider."""
+        return self._get_model_for_provider(self.finalizer_llm_provider)
 
     model_config = {
         "env_file": ".env",

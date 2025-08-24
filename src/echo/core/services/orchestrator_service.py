@@ -38,13 +38,13 @@ detailed insights into conversation processing performance and behavior.
 
 import logging
 import time
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 
+from ...domain.models.conversation import Conversation
 from ..orchestrator.coordinator import MultiAgentOrchestrator
 from ..orchestrator.state import AgentState
-from ...domain.models.conversation import Conversation
 
 logger = logging.getLogger(__name__)
 

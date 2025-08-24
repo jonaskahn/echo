@@ -105,7 +105,7 @@ while maintaining system stability and performance through proper isolation and
 management of external components.
 """
 
-from .sdk_manager import SDKPluginManager, SDKPluginBundle
+from .sdk_manager import SDKPluginBundle, SDKPluginManager
 
 __all__ = [
     "SDKPluginManager",

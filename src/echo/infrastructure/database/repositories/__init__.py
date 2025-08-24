@@ -111,9 +111,9 @@ data access operations in the Echo framework.
 """
 
 from .conversation_repository import ConversationRepository, InMemoryConversationRepository
-from .postgres import PostgreSQLThreadRepository, PostgreSQLConversationRepository
-from .redis import RedisThreadRepository, RedisConversationRepository
-from .thread_repository import ThreadRepository, InMemoryThreadRepository
+from .postgres import PostgreSQLConversationRepository, PostgreSQLThreadRepository
+from .redis import RedisConversationRepository, RedisThreadRepository
+from .thread_repository import InMemoryThreadRepository, ThreadRepository
 
 __all__ = [
     "ThreadRepository",

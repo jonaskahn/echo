@@ -81,20 +81,20 @@ layer while providing optimal performance for each deployment scenario.
 """
 
 import logging
-from typing import Tuple, Dict, Any
+from typing import Any, Dict, Tuple
 
+from ...config.settings import Settings
 from .connection import DatabaseConnectionManager, initialize_databases
 from .repositories import (
-    ThreadRepository,
     ConversationRepository,
-    InMemoryThreadRepository,
     InMemoryConversationRepository,
-    PostgreSQLThreadRepository,
+    InMemoryThreadRepository,
     PostgreSQLConversationRepository,
-    RedisThreadRepository,
+    PostgreSQLThreadRepository,
     RedisConversationRepository,
+    RedisThreadRepository,
+    ThreadRepository,
 )
-from ...config.settings import Settings
 
 logger = logging.getLogger(__name__)
 

@@ -1,10 +1,10 @@
 """SQLAlchemy model for Thread entities."""
 
-from sqlalchemy import Column, String, BigInteger, Integer, Enum, ForeignKey, Index
+from sqlalchemy import BigInteger, Column, Enum, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import relationship
 
-from .base import Base, TimestampMixin
 from ....domain.models.thread import ThreadStatus
+from .base import Base, TimestampMixin
 
 
 class ThreadModel(Base, TimestampMixin):

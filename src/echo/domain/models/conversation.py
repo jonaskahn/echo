@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field
 
@@ -120,7 +120,7 @@ class Conversation(BaseModel):
             A list containing a HumanMessage (user content) and an AIMessage
             (assistant content), suitable for context reconstruction.
         """
-        from langchain_core.messages import HumanMessage, AIMessage
+        from langchain_core.messages import AIMessage, HumanMessage
 
         return [HumanMessage(content=self.user_message), AIMessage(content=self.assistant_message)]
 

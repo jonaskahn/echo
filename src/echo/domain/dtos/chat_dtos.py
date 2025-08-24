@@ -1,6 +1,6 @@
 """Data Transfer Objects for chat-related API contracts."""
 
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field
 

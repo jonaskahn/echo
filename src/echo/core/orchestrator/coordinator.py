@@ -7,19 +7,19 @@ Plugins register their nodes and edges via `PluginManager`. The orchestrator exp
 async entry points and guards against infinite loops using hop counters in `AgentState`.
 """
 
-from typing import Dict, Any, List, Optional
 import traceback
-
-from langchain_core.callbacks.base import BaseCallbackHandler
-from langchain_core.messages import SystemMessage, AIMessage
-from langgraph.graph import StateGraph, END
-from langgraph.prebuilt import ToolNode
+from typing import Any, Dict, List, Optional
 
 from echo_sdk.base.loggable import Loggable
-from .state import AgentState
+from langchain_core.callbacks.base import BaseCallbackHandler
+from langchain_core.messages import AIMessage, SystemMessage
+from langgraph.graph import END, StateGraph
+from langgraph.prebuilt import ToolNode
+
 from ...config.settings import Settings
 from ...infrastructure.llm.factory import LLMModelFactory
 from ...infrastructure.plugins.sdk_manager import SDKPluginManager
+from .state import AgentState
 
 
 class GraphNodes:
@@ -40,7 +40,7 @@ class SystemPrompts:
     COORDINATOR_TEMPLATE = """Your goal is to analyze queries and decide go to next agent in **AVAILABLE AGENTS**.
 **AVAILABLE AGENTS**
 {plugin_descriptions}
-- finalize: Call when you think the answer for the user query/question is ready.
+- finalize: Call when you think the answer for the user query/question is ready or no suitable agents.
 **DECISION OUTPUT**
 - Choose ONE of: {tool_options} | finalize"""
 
@@ -59,11 +59,16 @@ class SystemPrompts:
 **IMPORTANT**, never makeup the answer if provided information by agents not enough
 Please provide a helpful response that addresses the user's query while explaining the hop limit situation."""
 
-    FINALIZATION = """You're goal is to help creating the final response for a multi-agent conversation.
+    FINALIZATION = """You are the Finalizer, responsible for creating the final response for a multi-agent conversation.
+
 CRITICAL REQUIREMENTS:
-1. Be comprehensive but concise.
-2. Maintain the language used in the chat.
-3. Connect all the work done by different agents into a coherent answer following up last user query."""
+1. Be comprehensive but concise - include all relevant information from agent work
+2. Maintain the language and tone used in the chat
+3. Connect all the work done by different agents into a coherent, flowing answer
+4. Be creative and engaging in your synthesis
+5. Address the user's original query directly and completely
+6. If multiple agents contributed, explain how their work fits together
+7. Use a conversational, helpful tone that feels natural and human-like"""
 
 
 class ToolLoggingHandler(BaseCallbackHandler):
@@ -113,6 +118,7 @@ class MultiAgentOrchestrator(Loggable):
         self.checkpointer = checkpointer
 
         self.coordinator_model = self._create_coordinator_model()
+        self.finalizer_model = self._create_finalizer_model()
         self.graph = self._build_graph()
 
     def _create_coordinator_model(self):
@@ -135,6 +141,19 @@ class MultiAgentOrchestrator(Loggable):
 
         base_model = self.llm_factory.create_base_model(config)
         return base_model.bind_tools(control_tools, parallel_tool_calls=True)
+
+    def _create_finalizer_model(self):
+        """Creates the finalizer model with different configuration than coordinator."""
+        from ...infrastructure.llm.providers import ModelConfig
+
+        config = ModelConfig(
+            provider=self.settings.finalizer_llm_provider,
+            model_name=self.settings.get_finalizer_provider_llm_model(),
+            temperature=self.settings.finalizer_temperature,
+            max_tokens=self.settings.finalizer_max_tokens,
+        )
+
+        return self.llm_factory.create_base_model(config)
 
     def _build_graph(self) -> StateGraph:
         """Constructs the complete LangGraph workflow for multi-agent orchestration.
@@ -331,16 +350,10 @@ class MultiAgentOrchestrator(Loggable):
         return self._create_state_update(suspension_response, current_hops, state)
 
     def _finalizer_node(self, state: AgentState) -> AgentState:
-        """Synthesizes the complete conversation into a coherent final response.
-
-        This node processes all accumulated messages from the multi-agent conversation
-        and creates a comprehensive, well-structured response that addresses the user's
-        original query. It ensures the final answer is concise, maintains the user's
-        language, and connects all the work done by different agents into a unified response.
-        """
+        """Synthesizes the complete conversation into a coherent final response."""
         finalization_prompt = SystemMessage(content=SystemPrompts.FINALIZATION)
-        final_response = self._invoke_model_with_prompt(finalization_prompt, state["messages"])
-
+        safe_messages = self._filter_safe_messages(state["messages"])
+        final_response = self.finalizer_model.invoke([finalization_prompt] + safe_messages)
         return self._create_state_update(final_response, state.get("agent_hops", 0), state)
 
     @staticmethod
@@ -356,7 +369,6 @@ class MultiAgentOrchestrator(Loggable):
             "agent_hops": agent_hops,
         }
 
-        # Preserve other important state fields if state is provided
         if state:
             for key in ["tool_hops", "current_agent", "plugin_context", "session_id"]:
                 if key in state:

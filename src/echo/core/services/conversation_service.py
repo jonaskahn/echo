@@ -83,15 +83,16 @@ Performance Optimizations:
 """
 
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
 
 from echo_sdk.base.loggable import Loggable
-from ..orchestrator.coordinator import MultiAgentOrchestrator
-from ..orchestrator.state import AgentState
+
 from ...domain.dtos.chat_dtos import ChatRequest, ChatResponse, TokenUsage
 from ...domain.models.conversation import Conversation
 from ...domain.models.thread import Thread, ThreadStatus
-from ...infrastructure.database.repositories import ThreadRepository, ConversationRepository
+from ...infrastructure.database.repositories import ConversationRepository, ThreadRepository
+from ..orchestrator.coordinator import MultiAgentOrchestrator
+from ..orchestrator.state import AgentState
 
 
 class ConversationService(Loggable):
@@ -304,15 +305,15 @@ class ConversationService(Loggable):
         """Extract processing metadata from orchestrator result."""
         tools_used = []
         messages = orchestrator_result.get("messages", [])
-        
+
         for message in messages:
-            if hasattr(message, 'tool_calls') and message.tool_calls:
+            if hasattr(message, "tool_calls") and message.tool_calls:
                 for tool_call in message.tool_calls:
-                    if isinstance(tool_call, dict) and 'name' in tool_call:
-                        tools_used.append(tool_call['name'])
-                    elif hasattr(tool_call, 'name'):
+                    if isinstance(tool_call, dict) and "name" in tool_call:
+                        tools_used.append(tool_call["name"])
+                    elif hasattr(tool_call, "name"):
                         tools_used.append(tool_call.name)
-        
+
         return {
             "tools_used": tools_used,
             "routing_history": orchestrator_result.get("plugin_context", {}).get("routing_history", []),

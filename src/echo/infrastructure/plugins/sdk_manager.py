@@ -83,13 +83,13 @@ import importlib
 import importlib.util
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Set, Union
+from typing import Any, Dict, List, Optional, Set, Union
 
 from langchain_core.tools import Tool, tool
 from langgraph.prebuilt import ToolNode
 
 try:
-    from echo_sdk import discover_plugins, PluginContract, AgentState
+    from echo_sdk import AgentState, PluginContract, discover_plugins
     from echo_sdk.utils import validate_plugin_structure
 
     SDK_AVAILABLE = True
@@ -101,6 +101,7 @@ except ImportError:
     SDK_AVAILABLE = False
 
 from echo_sdk.base.loggable import Loggable
+
 from ..llm.factory import LLMModelFactory
 
 
@@ -210,7 +211,7 @@ class SDKPluginBundle(Loggable):
             # }
             ```
         """
-        normalized_agent_name = self.metadata.name
+        normalized_agent_name = str.lower(self.metadata.name).replace(" ", "_")
         return {
             "conditional_edges": {
                 f"{normalized_agent_name}_agent": {
@@ -563,5 +564,3 @@ class SDKPluginManager(Loggable):
         self.plugin_contracts.clear()
         self.healthy_plugins.clear()
         self.failed_plugins.clear()
-
-

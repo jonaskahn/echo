@@ -5,6 +5,6 @@ Exposes:
 - `initialize_api()`: wiring for orchestrator, plugin manager, and services
 """
 
-from .routes import router, initialize_container
+from .routes import initialize_container, router
 
 __all__ = ["router", "initialize_container"]

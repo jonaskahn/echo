@@ -107,14 +107,14 @@ business logic rather than persistence concerns.
 
 from .connection import DatabaseConnectionManager, initialize_databases
 from .factory import DatabaseFactory
-from .models import Base, ThreadModel, ConversationModel, UserModel, OrganizationModel
+from .models import Base, ConversationModel, OrganizationModel, ThreadModel, UserModel
 from .repositories import (
-    ThreadRepository,
     ConversationRepository,
-    InMemoryThreadRepository,
     InMemoryConversationRepository,
-    PostgreSQLThreadRepository,
+    InMemoryThreadRepository,
     PostgreSQLConversationRepository,
+    PostgreSQLThreadRepository,
+    ThreadRepository,
 )
 
 __all__ = [

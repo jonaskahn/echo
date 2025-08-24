@@ -7,9 +7,9 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from ..services import global_service_container
 from ...core.services import ConversationService
 from ...domain.dtos.chat_dtos import ChatRequest, ChatResponse
+from ..services import global_service_container
 
 chat_api_router = APIRouter()
 

@@ -1,6 +1,6 @@
 """SQLAlchemy model for User entities."""
 
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Index, UniqueConstraint
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, String, UniqueConstraint
 
 from .base import Base, TimestampMixin
 

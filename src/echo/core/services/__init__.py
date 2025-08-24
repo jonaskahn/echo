@@ -96,7 +96,7 @@ encapsulated while providing clean, testable interfaces for the API layer.
 """
 
 from .conversation_service import ConversationService
-from .orchestrator_service import OrchestratorService, OrchestratorResponse
+from .orchestrator_service import OrchestratorResponse, OrchestratorService
 
 __all__ = [
     "ConversationService",

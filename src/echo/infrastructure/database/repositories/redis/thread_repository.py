@@ -2,11 +2,12 @@
 
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
 import redis.asyncio as redis
 
 from echo.domain.models import Thread, ThreadStatus
+
 from ...repositories.thread_repository import ThreadRepository
 
 logger = logging.getLogger(__name__)

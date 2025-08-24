@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
+from ...infrastructure.plugins.sdk_manager import SDKPluginManager
 from ..schemas import SystemStatus
 from ..services import global_service_container
-from ...infrastructure.plugins.sdk_manager import SDKPluginManager
 
 system_api_router = APIRouter()
 

@@ -1,6 +1,6 @@
 """SQLAlchemy model for Conversation entities."""
 
-from sqlalchemy import Column, String, Text, Integer, ForeignKey, Index, JSON
+from sqlalchemy import JSON, Column, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from .base import Base, TimestampMixin

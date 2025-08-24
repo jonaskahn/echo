@@ -6,9 +6,9 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from ...infrastructure.plugins.sdk_manager import SDKPluginManager
 from ..schemas import PluginInfo
 from ..services import global_service_container
-from ...infrastructure.plugins.sdk_manager import SDKPluginManager
 
 plugins_api_router = APIRouter()
 

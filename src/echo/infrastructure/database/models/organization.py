@@ -1,6 +1,6 @@
 """SQLAlchemy model for Organization entities."""
 
-from sqlalchemy import Column, String, Boolean, BigInteger, JSON, Index
+from sqlalchemy import JSON, BigInteger, Boolean, Column, Index, String
 
 from .base import Base, TimestampMixin
 
