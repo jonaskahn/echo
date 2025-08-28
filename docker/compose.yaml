@@ -13,24 +13,12 @@ services:
     ports:
       - "8000:8000"
       - "8501:8501"
-    environment:
-      - ECHO_DEBUG=false
-      - ECHO_DEFAULT_LLM_PROVIDER=google
-      - ECHO_FINALIZER_LLM_PROVIDER=google
-      - ECHO_GOOGLE_API_KEY=REPLACE-YOUR-KEY
-      - ECHO_ENABLE_DIRECTORY_PLUGINS=true
-      - ECHO_PLUGINS_DIR=/usr/src/echo/plugins
-      - ECHO_ENABLE_GIT_PLUGINS=true
-      - ECHO_ENABLE_PLUGIN_VALIDATION=true
-      - ECHO_CONVERSATION_STORAGE_BACKEND=redis
-      - ECHO_REDIS_URL=redis://echo-memory:6379
-      - ECHO_MAX_AGENT_HOPS=25
-      - ECHO_MAX_TOOL_HOPS=50
-      - ECHO_API_BASE_URL=http://4.185.15.54:8089
+    env_file:
+      - ../.env
     depends_on:
-      - echo-memory
+      - memory
     volumes:
-      - ./plugins:/usr/src/echo/plugins
+      - ../plugins/src/echo_plugins:/usr/src/echo/plugins
     healthcheck:
       test:
         ["CMD-SHELL", "wget -qO- http://localhost:8000/ | grep -q 'Echo AI'"]

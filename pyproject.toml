@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "echo"
-version = "1.0.1"
+version = "1.0.2"
 description = "Echo AI - Multi-agent AI orchestration system with plugin management"
 authors = [
     { name = "Jonas Kahn", email = "me@ifelse.one" }
@@ -40,14 +40,14 @@ dependencies = [
     "python-dotenv>=1.1.1,<2.0.0",
     "redis>=6.4.0,<7.0.0",
     "uvicorn[standard]>=0.35.0,<0.36.0",
-    "streamlit (>=1.48.1,<2.0.0)",
-    "sqlalchemy (>=2.0.43,<3.0.0)",
-    "asyncpg (>=0.30.0,<0.31.0)",
-    "alembic (>=1.16.4,<2.0.0)",
-    "psycopg2-binary (>=2.9.10,<3.0.0)",
-    "greenlet (>=3.2.4,<4.0.0)",
-    "langchain-google-genai (>=2.1.9,<3.0.0)",
-    "echo-sdk (>=1.0.1,<2.0.0)",
+    "streamlit>=1.48.1,<2.0.0",
+    "sqlalchemy>=2.0.43,<3.0.0",
+    "asyncpg>=0.30.0,<0.31.0",
+    "alembic>=1.16.4,<2.0.0",
+    "psycopg2-binary>=2.9.10,<3.0.0",
+    "greenlet>=3.2.4,<4.0.0",
+    "langchain-google-genai>=2.1.9,<3.0.0",
+    "echo-sdk>=1.0.0,<2.0.0",
 ]
 
 [project.urls]

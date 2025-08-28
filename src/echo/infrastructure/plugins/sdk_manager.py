@@ -89,6 +89,11 @@ from langgraph.prebuilt import ToolNode
 try:
     from echo_sdk import AgentState, ModelConfig, PluginContract, discover_plugins
     from echo_sdk.utils import validate_plugin_structure
+
+    try:
+        from echo_sdk.utils.validation import validate_plugin_structure_shallow as _sdk_validate_shallow
+    except Exception:
+        _sdk_validate_shallow = None
     from echo_sdk.utils.directory_discovery import DirectoryPluginDiscovery
 
     SDK_AVAILABLE = True
@@ -408,12 +413,16 @@ class SDKPluginManager(Loggable):
             return False
 
     def _validate_plugin(self, contract: PluginContract, plugin_name: str) -> bool:
-        """Validate plugin structure and dependencies."""
-        if validate_plugin_structure:
-            errors = validate_plugin_structure(contract.plugin_class)
-            if errors:
-                self.logger.error(f"Plugin validation failed for {plugin_name}: {errors}")
-                return False
+        """Validate plugin by shape, install dependencies, then fully validate."""
+        try:
+            if _sdk_validate_shallow is not None:
+                errors = _sdk_validate_shallow(contract.plugin_class)
+                if errors:
+                    self.logger.error(f"Plugin validation failed for {plugin_name}: {errors}")
+                    return False
+        except Exception as e:
+            self.logger.error(f"Shallow validation failed for {plugin_name}: {e}")
+            return False
 
         try:
             metadata = contract.get_metadata()
@@ -445,6 +454,12 @@ class SDKPluginManager(Loggable):
         except Exception as e:
             self.logger.error(f"Error installing dependencies for {plugin_name}: {e}")
             return False
+
+        if validate_plugin_structure:
+            errors = validate_plugin_structure(contract.plugin_class)
+            if errors:
+                self.logger.error(f"Plugin validation failed for {plugin_name}: {errors}")
+                return False
 
         dep_errors = contract.validate_dependencies()
         if dep_errors:

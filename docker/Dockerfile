@@ -24,10 +24,9 @@ WORKDIR /usr/src/echo
 COPY ../src src
 COPY ../pyproject.toml .
 COPY ../README.md .
-COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 RUN poetry env use $(which python)
 RUN poetry install
 
 EXPOSE 8000 8501
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD ["poetry", "run", "python", "-m", "echo", "start", "all"]
